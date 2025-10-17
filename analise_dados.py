@@ -1,7 +1,10 @@
-from Bio import SeqIO # Manipular sequências biológicas (DNA, RNA, proteínas) - formato FASTA
-import os # Interagir com o sistema operacional (Verifica se o arquivo existe)
-import sys # Acessar parâmetros e funcionalidades do sistema Python (Encerrar o Script)
-import pandas as pd # Manipulação e análise de dados em tabelas
+from Bio import SeqIO  # Manipular sequências biológicas (DNA, RNA, proteínas)
+import os              # Interagir com o sistema operacional
+import sys             # Acessar parâmetros e funcionalidades do sistema
+import pandas as pd    # Manipulação e análise de dados em tabelas
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+import matplotlib.pyplot as plt
 
 def extrair(arquivo):
     # Extrai as sequências em formato texto de um arquivo FASTA
@@ -57,7 +60,6 @@ todos_kmers = sorted(list(todos_kmers))
 
 # Montagem da matriz binária
 matriz_binaria = []
-
 for seq in sequencias_proteinas:
     kmers_seq = gerar_kmers(seq)
     linha = [1 if kmer in kmers_seq else 0 for kmer in todos_kmers]
@@ -72,3 +74,43 @@ print(df_matriz.head())
 # Salvar a matriz em CSV (opcional)
 df_matriz.to_csv("matriz_binaria_kmers.csv", index=False)
 print("\nMatriz salva em 'matriz_binaria_kmers.csv'")
+
+
+#  Criação da PCA com 300 componentes principais
+print("\nAplicando PCA com 300 componentes principais...")
+
+# Padronização dos dados (importante para PCA)
+scaler = StandardScaler()
+dados_normalizados = scaler.fit_transform(df_matriz)
+
+# Definir número de componentes (máximo 300 ou número de colunas)
+n_componentes = min(300, df_matriz.shape[1])
+pca = PCA(n_components=n_componentes)
+
+# Ajusta e transforma os dados
+componentes_pca = pca.fit_transform(dados_normalizados)
+
+# Cria DataFrame dos componentes principais
+colunas_pca = [f'PC{i+1}' for i in range(n_componentes)]
+df_pca = pd.DataFrame(componentes_pca, columns=colunas_pca)
+
+# Exibe resultados
+print("\nComponentes principais (exibindo as 5 primeiras linhas):")
+print(df_pca.head())
+
+print("\nVariância explicada pelos 10 primeiros componentes:")
+print(pca.explained_variance_ratio_[:10])
+
+# Visualização rápida dos dois primeiros componentes
+plt.figure(figsize=(6, 4))
+plt.scatter(df_pca['PC1'], df_pca['PC2'], color='blue')
+plt.title('PCA - Primeiros 2 Componentes Principais')
+plt.xlabel('PC1')
+plt.ylabel('PC2')
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+
+# Salvar os componentes em CSV
+df_pca.to_csv("pca_300_componentes.csv", index=False)
+print("\nResultado da PCA salvo em 'pca_300_componentes.csv'")
